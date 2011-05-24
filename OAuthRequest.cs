@@ -1,11 +1,8 @@
 ﻿using System;
 using System.Security.Cryptography;
 using System.Collections.Generic;
-using System.Linq;
 using System.Text;
-using System.Web;
 using System.Net;
-using System.Diagnostics;
 
 namespace OAuth
 {
@@ -35,7 +32,7 @@ namespace OAuth
         private string _generateTimestamp()
         {
             TimeSpan ts = DateTime.UtcNow - new DateTime(1970, 1, 1, 0, 0, 0, 0);
-            return Convert.ToInt64(ts.TotalMilliseconds).ToString();
+            return Convert.ToInt64(ts.TotalSeconds).ToString();
         }
 
         /// <summary>
@@ -118,7 +115,7 @@ namespace OAuth
         /// <param name="oauthTokenSecret">oauth token secret (if exists)</param>
         /// <param name="extraParameters">the list of parameters to send the service</param>
         /// <returns></returns>
-        public string request(Uri url, string httpMethod, string oauthToken, string oauthTokenSecret, List<QueryParameter> extraParameters)
+		public string request(Uri url, string httpMethod, string oauthToken, string oauthTokenSecret, List<QueryParameter> extraParameters, string extraPost2)
         {
             httpMethod = httpMethod.ToUpper();
             string normalizedUrl = String.Empty;
@@ -141,13 +138,9 @@ namespace OAuth
             {
                 parameters.Add(new QueryParameter("oauth_token_secret", oauthTokenSecret));
             }
-            if (extraParameters != null)
-            {
-                foreach (QueryParameter param in extraParameters)
-                {                    
-                    parameters.Add(param);                  
-                }
-            }
+            
+			if (extraParameters != null)
+				parameters.AddRange(extraParameters);
 
             // Generate the OAuth Signature and add it to the parameters
             string signature = this._generateSignature(url, httpMethod, parameters, this._consumer.OauthConfig.OauthSignatureMethod, this._consumer.OauthConfig.ConsumerSecret, oauthTokenSecret, out normalizedUrl, out normalizedUrlWithParameters);
@@ -178,7 +171,10 @@ namespace OAuth
                         postRequest.Append(param.Name + "=" + HttpUtility.UrlEncode(param.Value));
                     }*/
                     string postRequest = normalizedUrlWithParameters;
-                    Byte[] bufferrequest = System.Text.Encoding.UTF8.GetBytes(postRequest + "&oauth_signature=" + signature);
+					if (!string.IsNullOrEmpty(extraPost2))
+						postRequest += "&" + extraPost2;
+                	postRequest += "&oauth_signature=" + signature;
+					Byte[] bufferrequest = System.Text.Encoding.UTF8.GetBytes(postRequest);
                     request.Method = "POST";
                     request.ContentType = "application/x-www-form-urlencoded";
                     request.ContentLength = bufferrequest.Length;

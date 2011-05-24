@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Data;
+using System.Web;
 using System.Xml;
 
 namespace OAuth
@@ -55,14 +56,30 @@ namespace OAuth
             List<QueryParameter> parameters = new List<QueryParameter>();
             parameters.Add(new QueryParameter("oauth_token", oauth_token));
             url += "?oauth_token=" + oauth_token;
-            System.Diagnostics.Process.Start(url);
-        } 
+				System.Diagnostics.Process.Start(url);
+        }
 
-        public string getRequestToken()
+
+		private string _getAuthorizationPageUrl()
+		{
+			string url = this._oauthConfig.UserAuthorizationUrl;
+			string oauth_token = this._oauthConfig.OauthToken;
+			List<QueryParameter> parameters = new List<QueryParameter>();
+			parameters.Add(new QueryParameter("oauth_token", oauth_token));
+			url += "?oauth_token=" + oauth_token;
+			return url;
+		}
+
+		public string getRequestToken()
+		{
+			return getRequestToken(null, "");
+		}
+
+    	public string getRequestToken(List<QueryParameter> extraparameters, string postextra)
         {
             string oauth_token = this._oauthConfig.OauthToken;
             OAuthRequest request = new OAuthRequest(this, base._debugType);
-            string tokens = request.request(new Uri(this._oauthConfig.RequestTokenUrl), "GET", oauth_token, "", null).ToString();
+			string tokens = request.request(new Uri(this._oauthConfig.RequestTokenUrl), "GET", oauth_token, "", extraparameters, postextra	).ToString();
             if (tokens == String.Empty || tokens.Length == 0) return null;
 
             // Save Tokens in Configuration            
@@ -72,6 +89,25 @@ namespace OAuth
             this._openAuthorizationPage();
             return tokens;
         }
+		
+		public string getRequestTokenRedirectUrl()
+		{
+			return getRequestTokenRedirectUrl(null,"");
+		}
+
+    	public string getRequestTokenRedirectUrl(List<QueryParameter> extraparameters, string extrapost)
+		{
+			string oauth_token = this._oauthConfig.OauthToken;
+			OAuthRequest request = new OAuthRequest(this, base._debugType);
+			string tokens = request.request(new Uri(this._oauthConfig.RequestTokenUrl), "GET", oauth_token, "", extraparameters, extrapost).ToString();
+			if (tokens == String.Empty || tokens.Length == 0) return null;
+
+			// Save Tokens in Configuration            
+			this._saveTokenDataInConfiguration(tokens);
+
+			// Open Authorization Page
+			return this._getAuthorizationPageUrl();
+		}
 
         public string getAccessToken(string oauth_verifier)
         {
@@ -81,7 +117,7 @@ namespace OAuth
             //parameters.Add(new QueryParameter("oauth_token", oauth_token));
             parameters.Add(new QueryParameter("oauth_verifier", oauth_verifier));
             OAuthRequest request = new OAuthRequest(this, base._debugType);
-            string tokens = request.request(new Uri(this._oauthConfig.AccessTokenUrl), "GET", oauth_token, oauth_token_secret, parameters).ToString();
+            string tokens = request.request(new Uri(this._oauthConfig.AccessTokenUrl), "GET", oauth_token, oauth_token_secret, parameters, "").ToString();
             if (tokens == String.Empty || tokens.Length == 0) return null;
 
             // Save Tokens in Configuration
@@ -95,7 +131,7 @@ namespace OAuth
             string oauth_token = this._oauthConfig.OauthToken;
             string oauth_token_secret = this._oauthConfig.OauthTokenSecret;
             OAuthRequest request = new OAuthRequest(this, base._debugType);
-            string response = request.request(new Uri(url), httpMethod, oauth_token, oauth_token_secret, parameters).ToString();
+            string response = request.request(new Uri(url), httpMethod, oauth_token, oauth_token_secret, parameters, "").ToString();
             if (response == String.Empty || response.Length == 0)
             {
                 base._debug("The Request Response was empty");
